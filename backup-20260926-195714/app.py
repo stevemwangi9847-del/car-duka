@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from werkzeug.utils import secure_filename
 from auth import auth_bp, init_auth_db, login_required, admin_required
-import os
-from libsql_client import create_client_sync
+import sqlite3
 import os
 import uuid
 import re
@@ -26,11 +25,8 @@ def allowed_file(filename):
 
 
 def init_db():
-    conn = create_client_sync(
-        url=os.environ.get("TURSO_DATABASE_URL"),
-        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
-    )
-    c = conn
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS cars (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         make TEXT NOT NULL,
@@ -69,10 +65,9 @@ def init_db():
 
 
 def get_db():
-    return create_client_sync(
-        url=os.environ.get("TURSO_DATABASE_URL"),
-        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
-    )
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 @app.context_processor

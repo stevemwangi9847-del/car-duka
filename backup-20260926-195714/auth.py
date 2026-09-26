@@ -1,18 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-import os
-from libsql_client import create_client_sync
+import sqlite3
+
 auth_bp = Blueprint('auth', __name__)
 
 DATABASE = 'database.db'
 
 
 def get_db():
-    return create_client_sync(
-        url=os.environ.get("TURSO_DATABASE_URL"),
-        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
-    )
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def init_auth_db():

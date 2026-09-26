@@ -8,7 +8,7 @@ venv/
 env/
 .venv/
 
-# Flask Database
+# Database (local SQLite backup, no longer used in production)
 database.db
 *.sqlite3
 *.db
