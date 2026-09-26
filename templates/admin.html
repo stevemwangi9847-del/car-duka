@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Admin - Car Duka{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="admin-header">
+    <h1>Admin Dashboard</h1>
+    <a href="{{ url_for('add_car') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Add New Car</a>
+  </div>
+
+  <h2 class="admin-h2">🚗 Cars ({{ cars|length }})</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Image</th><th>Car</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for car in cars %}
+      <tr>
+        <td>
+          {% if car['image'] %}
+            <img src="{{ url_for('static', filename='uploads/' + car['image']) }}" class="thumb">
+          {% else %}<span class="no-img">—</span>{% endif %}
+        </td>
+        <td>{{ car['year'] }} {{ car['make'] }} {{ car['model'] }}</td>
+        <td>KSh {{ '{:,.0f}'.format(car['price']) }}</td>
+        <td><span class="status {{ car['status'] }}">{{ car['status'] }}</span></td>
+        <td>
+          <a href="{{ url_for('car_detail', car_id=car['id']) }}" class="btn-sm">View</a>
+          <a href="{{ url_for('delete_car', car_id=car['id']) }}" onclick="return confirm('Delete this car?')" class="btn-sm danger">Delete</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="empty">No cars yet. Click "Add New Car" to begin.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="admin-h2">📅 Bookings ({{ bookings|length }})</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Customer</th><th>Car</th><th>Date</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for b in bookings %}
+      <tr>
+        <td>{{ b['customer_name'] }}<br><small>{{ b['customer_email'] }}</small></td>
+        <td>{{ b['make'] }} {{ b['model'] }}</td>
+        <td>{{ b['booking_date'] }}<br><small>{{ b['booking_time'] }}</small></td>
+        <td>{{ b['customer_phone'] }}</td>
+        <td><span class="status {{ b['status'] }}">{{ b['status'] }}</span></td>
+        <td>
+          <a href="{{ url_for('update_booking', booking_id=b['id'], status='confirmed') }}" class="btn-sm">Confirm</a>
+          <a href="{{ url_for('update_booking', booking_id=b['id'], status='cancelled') }}" class="btn-sm danger">Cancel</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="empty">No bookings yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

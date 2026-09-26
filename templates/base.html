@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Car Duka - Your Trusted Car Marketplace{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<!-- ============ HEADER / NAVBAR (TOP OF PAGE) ============ -->
+<header class="navbar">
+  <div class="container nav-container">
+    <a href="{{ url_for('index') }}" class="logo">
+      <i class="fas fa-car-side"></i> Car <span>Duka</span>
+    </a>
+
+    <nav>
+      <ul class="nav-links">
+        <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="{{ url_for('cars') }}">Browse Cars</a></li>
+
+        {% if current_user %}
+          {% if current_user.role == 'admin' %}
+            <li><a href="{{ url_for('admin') }}">Admin</a></li>
+          {% endif %}
+          <li class="user-greeting">
+            <i class="fas fa-user-circle"></i> {{ current_user.name }}
+            <span class="role-tag {{ current_user.role }}">{{ current_user.role }}</span>
+          </li>
+          <li><a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a></li>
+        {% else %}
+          <li><a href="{{ url_for('auth.login') }}">Login</a></li>
+          <li><a href="{{ url_for('auth.register') }}" class="register-btn">Register</a></li>
+        {% endif %}
+
+        <li>
+          <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="whatsapp-btn">
+            <i class="fab fa-whatsapp"></i> 0718870024
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <button class="menu-toggle" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
+  </div>
+</header>
+
+<!-- ============ FLASH MESSAGES ============ -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-container">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ============ PAGE CONTENT ============ -->
+<main>{% block content %}{% endblock %}</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div>
+      <h3><i class="fas fa-car-side"></i> Car Duka</h3>
+      <p>Your trusted marketplace for quality new and used cars in Kenya.</p>
+    </div>
+    <div>
+      <h4>Quick Links</h4>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('cars') }}">Browse Cars</a>
+      {% if current_user and current_user.role == 'admin' %}
+        
+      {% endif %}
+    </div>
+    <div>
+      <h4>Contact Us</h4>
+      <p><i class="fab fa-whatsapp"></i> WhatsApp: 0718870024</p>
+      <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="footer-wa">Chat with us</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2024 Car Duka. All rights reserved.</div>
+</footer>
+
+<!-- ============ FLOATING WHATSAPP BUTTON ============ -->
+<a href="https://wa.me/{{ whatsapp_number }}?text=Hello%20Car%20Duka,%20I'm%20interested%20in%20a%20car"
+   class="float-wa" target="_blank" title="Chat on WhatsApp">
+  <i class="fab fa-whatsapp"></i>
+</a>
+
+<!-- ============ AI CHATBOT ============ -->
+<div class="chatbot-container">
+  <button class="chat-toggle" onclick="toggleChat()">
+    <i class="fas fa-robot"></i>
+  </button>
+  <div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+      <div>
+        <i class="fas fa-robot"></i>
+        <span>Car Duka AI</span>
+        <small>Online</small>
+      </div>
+      <button onclick="toggleChat()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="msg bot">Hello! 👋 I'm your Car Duka AI assistant. Ask me about our cars, prices, or bookings!</div>
+    </div>
+    <div class="chat-footer">
+      <input type="text" id="chatInput" placeholder="Type your question..." onkeypress="handleChatKey(event)">
+      <button onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

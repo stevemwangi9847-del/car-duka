@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Add Car - Car Duka Admin{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="form-card wide">
+    <h1><i class="fas fa-plus-circle"></i> Add New Car</h1>
+    <p class="page-sub">Fill in the details and upload a photo from your computer</p>
+
+    <form method="POST" enctype="multipart/form-data" class="styled-form">
+      <div class="form-row two">
+        <div><label>Make *</label><input type="text" name="make" required placeholder="e.g. Toyota"></div>
+        <div><label>Model *</label><input type="text" name="model" required placeholder="e.g. Corolla"></div>
+      </div>
+      <div class="form-row three">
+        <div><label>Year *</label><input type="number" name="year" required min="1980" max="2030" placeholder="2020"></div>
+        <div><label>Price (KSh) *</label><input type="number" name="price" required step="0.01" placeholder="1500000"></div>
+        <div><label>Mileage (km)</label><input type="number" name="mileage" placeholder="45000"></div>
+      </div>
+      <div class="form-row three">
+        <div>
+          <label>Fuel Type *</label>
+          <select name="fuel_type" required>
+            <option value="">-- Select --</option>
+            <option>Petrol</option><option>Diesel</option><option>Hybrid</option><option>Electric</option>
+          </select>
+        </div>
+        <div>
+          <label>Transmission *</label>
+          <select name="transmission" required>
+            <option value="">-- Select --</option>
+            <option>Automatic</option><option>Manual</option>
+          </select>
+        </div>
+        <div>
+          <label>Condition *</label>
+          <select name="condition" required>
+            <option>Used</option><option>New</option><option>Foreign Used</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row three">
+        <div><label>Color</label><input type="text" name="color" placeholder="White"></div>
+        <div>
+          <label>Body Type</label>
+          <select name="body_type">
+            <option value="">-- Select --</option>
+            <option>Sedan</option><option>SUV</option><option>Hatchback</option>
+            <option>Pickup</option><option>Coupe</option><option>Van</option><option>Wagon</option>
+          </select>
+        </div>
+        <div><label>Engine Size</label><input type="text" name="engine_size" placeholder="1.8L"></div>
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <textarea name="description" rows="4" placeholder="Additional details about the car..."></textarea>
+      </div>
+      <div class="form-row">
+        <label>Car Image (from your computer)</label>
+        <div class="file-drop" onclick="document.getElementById('imgInput').click()">
+          <input type="file" id="imgInput" name="image" accept="image/*" onchange="previewImage(event)" hidden>
+          <div id="fileMsg"><i class="fas fa-cloud-upload-alt"></i> Click to choose an image (JPG, PNG, GIF, WEBP)</div>
+          <img id="imgPreview" style="display:none;">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Car</button>
+        <a href="{{ url_for('admin') }}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

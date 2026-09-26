@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Login - Car Duka{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="form-card auth-card">
+    <div class="auth-icon"><i class="fas fa-sign-in-alt"></i></div>
+    <h1>Welcome Back</h1>
+    <p class="page-sub">Log in to book a car or manage the system</p>
+
+    <form method="POST" class="styled-form">
+      <div class="form-row">
+        <label><i class="fas fa-envelope"></i> Email *</label>
+        <input type="email" name="email" required autofocus placeholder="you@example.com">
+      </div>
+      <div class="form-row">
+        <label><i class="fas fa-lock"></i> Password *</label>
+        <input type="password" name="password" required placeholder="Your password">
+      </div>
+      <button type="submit" class="btn btn-primary full">
+        <i class="fas fa-sign-in-alt"></i> Log In
+      </button>
+    </form>
+
+    <p class="auth-switch">
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

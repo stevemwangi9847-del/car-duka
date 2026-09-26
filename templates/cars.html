@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Browse Cars - Car Duka{% endblock %}
+{% block content %}
+<div class="container section">
+  <h1 class="page-title">Browse Our Cars</h1>
+  <p class="page-sub">Use filters to find your perfect car</p>
+
+  <form method="GET" class="filter-form">
+    <input type="text" name="make" placeholder="Make (e.g. Toyota)" value="{{ request.args.get('make','') }}">
+    <input type="text" name="model" placeholder="Model (e.g. Corolla)" value="{{ request.args.get('model','') }}">
+    <input type="number" name="min_price" placeholder="Min Price (KSh)" value="{{ request.args.get('min_price','') }}">
+    <input type="number" name="max_price" placeholder="Max Price (KSh)" value="{{ request.args.get('max_price','') }}">
+    <select name="fuel_type">
+      <option value="">Fuel Type</option>
+      {% for f in ['Petrol','Diesel','Hybrid','Electric'] %}
+      <option value="{{ f }}" {% if request.args.get('fuel_type')==f %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+    </select>
+    <select name="transmission">
+      <option value="">Transmission</option>
+      {% for t in ['Automatic','Manual'] %}
+      <option value="{{ t }}" {% if request.args.get('transmission')==t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <select name="body_type">
+      <option value="">Body Type</option>
+      {% for b in ['Sedan','SUV','Hatchback','Pickup','Coupe','Van','Wagon'] %}
+      <option value="{{ b }}" {% if request.args.get('body_type')==b %}selected{% endif %}>{{ b }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="year" placeholder="Min Year" value="{{ request.args.get('year','') }}">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filter</button>
+    <a href="{{ url_for('cars') }}" class="btn btn-outline">Reset</a>
+  </form>
+
+  <div class="car-grid">
+    {% for car in cars %}
+    <div class="car-card">
+      <div class="car-image">
+        {% if car['image'] %}
+          <img src="{{ url_for('static', filename='uploads/' + car['image']) }}" alt="{{ car['make'] }} {{ car['model'] }}">
+        {% else %}
+          <div class="no-image"><i class="fas fa-car"></i></div>
+        {% endif %}
+        <span class="car-badge">{{ car['condition'] }}</span>
+      </div>
+      <div class="car-info">
+        <h3>{{ car['year'] }} {{ car['make'] }} {{ car['model'] }}</h3>
+        <p class="car-price">KSh {{ '{:,.0f}'.format(car['price']) }}</p>
+        <div class="car-meta">
+          <span><i class="fas fa-gas-pump"></i> {{ car['fuel_type'] }}</span>
+          <span><i class="fas fa-cogs"></i> {{ car['transmission'] }}</span>
+          <span><i class="fas fa-road"></i> {{ '{:,}'.format(car['mileage'] or 0) }} km</span>
+        </div>
+        <a href="{{ url_for('car_detail', car_id=car['id']) }}" class="btn btn-primary full">View Details</a>
+      </div>
+    </div>
+    {% else %}
+      <p class="empty">No cars match your search.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

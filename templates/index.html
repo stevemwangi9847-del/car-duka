@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Car Duka - Find Your Dream Car{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="container hero-content">
+    <h1>Find Your <span>Dream Car</span> at Car Duka</h1>
+    <p>Browse, compare, and book a viewing for your perfect car — all in one place.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('cars') }}" class="btn btn-primary"><i class="fas fa-search"></i> Browse Cars</a>
+      <a href="https://wa.me/{{ whatsapp_number }}" target="_blank" class="btn btn-wa"><i class="fab fa-whatsapp"></i> Chat on WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<section class="container section">
+  <h2 class="section-title">Why Choose Car Duka?</h2>
+  <div class="features">
+    <div class="feature-card"><i class="fas fa-search"></i><h3>Easy Search</h3><p>Find cars by make, price, fuel type and more.</p></div>
+    <div class="feature-card"><i class="fas fa-calendar-check"></i><h3>Book Viewing</h3><p>Schedule a day to see your car in person.</p></div>
+    <div class="feature-card"><i class="fas fa-shield-alt"></i><h3>Trusted Quality</h3><p>Verified cars in excellent condition.</p></div>
+    <div class="feature-card"><i class="fas fa-robot"></i><h3>AI Assistant</h3><p>Get instant answers to your questions.</p></div>
+  </div>
+</section>
+
+<section class="container section">
+  <h2 class="section-title">Latest Cars</h2>
+  <div class="car-grid">
+    {% for car in cars %}
+    <div class="car-card">
+      <div class="car-image">
+        {% if car['image'] %}
+          <img src="{{ url_for('static', filename='uploads/' + car['image']) }}" alt="{{ car['make'] }} {{ car['model'] }}">
+        {% else %}
+          <div class="no-image"><i class="fas fa-car"></i></div>
+        {% endif %}
+        <span class="car-badge">{{ car['condition'] }}</span>
+      </div>
+      <div class="car-info">
+        <h3>{{ car['year'] }} {{ car['make'] }} {{ car['model'] }}</h3>
+        <p class="car-price">KSh {{ '{:,.0f}'.format(car['price']) }}</p>
+        <div class="car-meta">
+          <span><i class="fas fa-gas-pump"></i> {{ car['fuel_type'] }}</span>
+          <span><i class="fas fa-cogs"></i> {{ car['transmission'] }}</span>
+        </div>
+        <a href="{{ url_for('car_detail', car_id=car['id']) }}" class="btn btn-primary full">View Details</a>
+      </div>
+    </div>
+    {% else %}
+      <p class="empty">No cars available yet. Check back soon!</p>
+    {% endfor %}
+  </div>
+  <div class="center"><a href="{{ url_for('cars') }}" class="btn btn-outline">View All Cars →</a></div>
+</section>
+
+{% endblock %}

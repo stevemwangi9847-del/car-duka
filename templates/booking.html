@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Book Viewing - Car Duka{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="form-card">
+    <h1>Book a Viewing</h1>
+    <div class="booked-car">
+      {% if car['image'] %}
+        <img src="{{ url_for('static', filename='uploads/' + car['image']) }}" alt="">
+      {% endif %}
+      <div>
+        <h3>{{ car['year'] }} {{ car['make'] }} {{ car['model'] }}</h3>
+        <p class="car-price">KSh {{ '{:,.0f}'.format(car['price']) }}</p>
+      </div>
+    </div>
+<form method="POST" class="styled-form">
+  <div class="form-row">
+    <label>Full Name *</label>
+    <input type="text" name="customer_name" required
+           value="{{ current_user.name if current_user else '' }}">
+  </div>
+  <div class="form-row">
+    <label>Email *</label>
+    <input type="email" name="customer_email" required
+           value="{{ session.get('user_email', '') }}">
+  </div>
+  <div class="form-row">
+    <label>Phone *</label>
+    <input type="tel" name="customer_phone" required placeholder="0718870024">
+  </div>
+  <div class="form-row two">
+    <div>
+      <label>Preferred Date *</label>
+      <input type="date" name="booking_date" required>
+    </div>
+    <div>
+      <label>Preferred Time *</label>
+      <input type="time" name="booking_time" required>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Message (optional)</label>
+    <textarea name="message" rows="3" placeholder="Any questions?"></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary full">
+    <i class="fas fa-check"></i> Confirm Booking
+  </button>
+</form>
+
+  </div>
+</div>
+{% endblock %}
