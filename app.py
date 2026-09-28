@@ -2,10 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from werkzeug.utils import secure_filename
 from auth import auth_bp, init_auth_db, login_required, admin_required
 import os
+from dotenv import load_dotenv
 from libsql_client import create_client_sync
-import os
 import uuid
 import re
+
+# Load .env BEFORE any os.environ calls
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'car_duka_secret_key_2024'
@@ -27,11 +30,10 @@ def allowed_file(filename):
 
 def init_db():
     conn = create_client_sync(
-        url=os.environ.get("TURSO_DATABASE_URL"),
-        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
+        url=os.environ.get("LIBSQL_URL"),
+        auth_token=os.environ.get("LIBSQL_AUTH_TOKEN") or None
     )
-    c = conn
-    c.execute('''CREATE TABLE IF NOT EXISTS cars (
+    conn.execute('''CREATE TABLE IF NOT EXISTS cars (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         make TEXT NOT NULL,
         model TEXT NOT NULL,
@@ -49,7 +51,7 @@ def init_db():
         status TEXT DEFAULT 'available',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS bookings (
+    conn.execute('''CREATE TABLE IF NOT EXISTS bookings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         car_id INTEGER NOT NULL,
         user_id INTEGER,
@@ -64,14 +66,13 @@ def init_db():
         FOREIGN KEY (car_id) REFERENCES cars (id),
         FOREIGN KEY (user_id) REFERENCES users (id)
     )''')
-    conn.commit()
     conn.close()
 
 
 def get_db():
     return create_client_sync(
-        url=os.environ.get("TURSO_DATABASE_URL"),
-        auth_token=os.environ.get("TURSO_AUTH_TOKEN")
+        url=os.environ.get("LIBSQL_URL"),
+        auth_token=os.environ.get("LIBSQL_AUTH_TOKEN") or None
     )
 
 
@@ -91,7 +92,7 @@ def inject_globals():
 @app.route('/')
 def index():
     conn = get_db()
-    cars = conn.execute('SELECT * FROM cars WHERE status = "available" ORDER BY created_at DESC LIMIT 6').fetchall()
+    cars = conn.execute('SELECT * FROM cars WHERE status = "available" ORDER BY created_at DESC LIMIT 6').rows
     conn.close()
     return render_template('index.html', cars=cars)
 
@@ -129,7 +130,7 @@ def cars():
 
     query += ' ORDER BY created_at DESC'
     conn = get_db()
-    cars = conn.execute(query, params).fetchall()
+    cars = conn.execute(query, params).rows
     conn.close()
     return render_template('cars.html', cars=cars)
 
@@ -137,7 +138,8 @@ def cars():
 @app.route('/car/<int:car_id>')
 def car_detail(car_id):
     conn = get_db()
-    car = conn.execute('SELECT * FROM cars WHERE id = ?', (car_id,)).fetchone()
+    result = conn.execute('SELECT * FROM cars WHERE id = ?', [car_id])
+    car = result.rows[0] if result.rows else None
     conn.close()
     if car is None:
         flash('Car not found', 'error')
@@ -150,7 +152,8 @@ def car_detail(car_id):
 @login_required
 def book(car_id):
     conn = get_db()
-    car = conn.execute('SELECT * FROM cars WHERE id = ?', (car_id,)).fetchone()
+    result = conn.execute('SELECT * FROM cars WHERE id = ?', [car_id])
+    car = result.rows[0] if result.rows else None
     if car is None:
         conn.close()
         flash('Car not found', 'error')
@@ -160,11 +163,10 @@ def book(car_id):
         conn.execute('''INSERT INTO bookings 
             (car_id, user_id, customer_name, customer_email, customer_phone, booking_date, booking_time, message)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-            (car_id, session['user_id'],
+            [car_id, session['user_id'],
              request.form['customer_name'], request.form['customer_email'],
              request.form['customer_phone'], request.form['booking_date'],
-             request.form['booking_time'], request.form.get('message', '')))
-        conn.commit()
+             request.form['booking_time'], request.form.get('message', '')])
         conn.close()
         flash('Booking submitted successfully! We will contact you soon.', 'success')
         return redirect(url_for('car_detail', car_id=car_id))
@@ -178,10 +180,10 @@ def book(car_id):
 @admin_required
 def admin():
     conn = get_db()
-    cars = conn.execute('SELECT * FROM cars ORDER BY created_at DESC').fetchall()
+    cars = conn.execute('SELECT * FROM cars ORDER BY created_at DESC').rows
     bookings = conn.execute('''SELECT bookings.*, cars.make, cars.model 
         FROM bookings JOIN cars ON bookings.car_id = cars.id 
-        ORDER BY bookings.created_at DESC''').fetchall()
+        ORDER BY bookings.created_at DESC''').rows
     conn.close()
     return render_template('admin.html', cars=cars, bookings=bookings)
 
@@ -202,13 +204,12 @@ def add_car():
         conn.execute('''INSERT INTO cars 
             (make, model, year, price, mileage, fuel_type, transmission, color, body_type, engine_size, condition, description, image)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-            (request.form['make'], request.form['model'], request.form['year'],
+            [request.form['make'], request.form['model'], request.form['year'],
              request.form['price'], request.form.get('mileage', 0),
              request.form['fuel_type'], request.form['transmission'],
              request.form.get('color', ''), request.form.get('body_type', ''),
              request.form.get('engine_size', ''), request.form.get('condition', 'Used'),
-             request.form.get('description', ''), image_filename))
-        conn.commit()
+             request.form.get('description', ''), image_filename])
         conn.close()
         flash('Car added successfully!', 'success')
         return redirect(url_for('admin'))
@@ -220,14 +221,14 @@ def add_car():
 @admin_required
 def delete_car(car_id):
     conn = get_db()
-    car = conn.execute('SELECT image FROM cars WHERE id = ?', (car_id,)).fetchone()
+    result = conn.execute('SELECT image FROM cars WHERE id = ?', [car_id])
+    car = result.rows[0] if result.rows else None
     if car and car['image']:
         try:
             os.remove(os.path.join(app.config['UPLOAD_FOLDER'], car['image']))
         except Exception:
             pass
-    conn.execute('DELETE FROM cars WHERE id = ?', (car_id,))
-    conn.commit()
+    conn.execute('DELETE FROM cars WHERE id = ?', [car_id])
     conn.close()
     flash('Car deleted successfully!', 'success')
     return redirect(url_for('admin'))
@@ -237,8 +238,7 @@ def delete_car(car_id):
 @admin_required
 def update_booking(booking_id, status):
     conn = get_db()
-    conn.execute('UPDATE bookings SET status = ? WHERE id = ?', (status, booking_id))
-    conn.commit()
+    conn.execute('UPDATE bookings SET status = ? WHERE id = ?', [status, booking_id])
     conn.close()
     flash('Booking status updated!', 'success')
     return redirect(url_for('admin'))
@@ -251,7 +251,7 @@ def chat():
     message = data.get('message', '').lower().strip()
 
     conn = get_db()
-    cars = conn.execute('SELECT make, model, year, price FROM cars WHERE status = "available"').fetchall()
+    cars = conn.execute('SELECT make, model, year, price FROM cars WHERE status = "available"').rows
     conn.close()
 
     cars_list = [f"• {c['year']} {c['make']} {c['model']} — KSh {c['price']:,.0f}" for c in cars]
@@ -296,5 +296,5 @@ def chat():
 
 if __name__ == '__main__':
     init_db()
-    init_auth_db()   # ← NEW: create users table + seed admin
+    init_auth_db()   # ← create users table + seed admin
     app.run(debug=True)
