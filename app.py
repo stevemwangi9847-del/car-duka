@@ -69,19 +69,13 @@ def init_db():
     conn.close()
 
 
-_db_initialized = False
-
-
-@app.before_request
-def ensure_db_initialized():
-    global _db_initialized
-    if not _db_initialized:
-        try:
-            init_db()
-            init_auth_db()
-            _db_initialized = True
-        except Exception as e:
-            print(f"Lazy DB initialization warning: {e}")
+# Initialize database tables
+try:
+    init_db()
+    init_auth_db()
+    print("Database initialized successfully")
+except Exception as e:
+    print(f"Database initialization error: {e}")
 
 
 @app.context_processor
