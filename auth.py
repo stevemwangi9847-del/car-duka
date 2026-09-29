@@ -144,19 +144,23 @@ def login():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        email = request.form['email'].strip().lower()
-        password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
 
         user = None
+        conn = None
         try:
+            init_auth_db()
             conn = get_db()
             result = conn.execute('SELECT * FROM users WHERE email = ?', [email])
             user = result.rows[0] if result.rows else None
-            conn.close()
         except Exception as e:
-            print(f"Error querying user during login: {e}")
+            print(f"LOGIN ERROR: {e}")
             flash('Database connection error. Please try again later.', 'error')
             return render_template('login.html')
+        finally:
+            if conn:
+                conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
