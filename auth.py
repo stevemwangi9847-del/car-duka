@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import os
 from dotenv import load_dotenv
 from libsql_client import create_client_sync
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature, BadSignature
 
 # Load .env BEFORE any os.environ calls
 load_dotenv()
@@ -151,3 +152,75 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
+
+
+def get_serializer():
+    return URLSafeTimedSerializer(current_app.secret_key, salt='password-reset')
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        email = request.form['email'].strip().lower()
+        if not email:
+            flash('Please enter your email address.', 'error')
+            return redirect(url_for('auth.forgot_password'))
+
+        conn = get_db()
+        result = conn.execute('SELECT id, full_name FROM users WHERE email = ?', [email])
+        user = result.rows[0] if result.rows else None
+        conn.close()
+
+        if not user:
+            flash('No registered account was found with that email address.', 'error')
+            return redirect(url_for('auth.forgot_password'))
+
+        serializer = get_serializer()
+        token = serializer.dumps(email)
+        flash('Account verified! Please set your new password below.', 'success')
+        return redirect(url_for('auth.reset_password', token=token))
+
+    return render_template('forgot_password.html')
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+
+    serializer = get_serializer()
+    try:
+        email = serializer.loads(token, max_age=3600)  # valid for 1 hour
+    except (SignatureExpired, BadTimeSignature, BadSignature):
+        flash('The password reset link is invalid or has expired. Please try again.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm = request.form['confirm_password']
+
+        if not password or not confirm:
+            flash('Please fill in both password fields.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if password != confirm:
+            flash('Passwords do not match.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        if len(password) < 6:
+            flash('Password must be at least 6 characters.', 'error')
+            return redirect(url_for('auth.reset_password', token=token))
+
+        conn = get_db()
+        conn.execute('UPDATE users SET password_hash = ? WHERE email = ?',
+                     [generate_password_hash(password), email])
+        conn.close()
+
+        flash('Your password has been reset successfully! Please log in with your new password.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('reset_password.html', email=email, token=token)
+

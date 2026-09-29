@@ -237,6 +237,10 @@ tr:hover { background: #fafafa; }
 .auth-switch { text-align: center; margin-top: 20px; color: var(--gray); }
 .auth-switch a { color: var(--primary); font-weight: 600; }
 .auth-switch a:hover { text-decoration: underline; }
+.label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.label-row label { margin-bottom: 0 !important; }
+.forgot-link { font-size: 13px; color: var(--primary); font-weight: 600; }
+.forgot-link:hover { text-decoration: underline; }
 .admin-hint {
   margin-top: 20px; padding: 14px; background: #fff8e1;
   border-left: 4px solid #f4a300; border-radius: 8px;
