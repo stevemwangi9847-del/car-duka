@@ -28,11 +28,14 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_db_credentials():
+    url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL") or "file:local.db"
+    token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
+    return url, token
+
+
 def init_db():
-    conn = create_client_sync(
-        url=os.environ.get("LIBSQL_URL"),
-        auth_token=os.environ.get("LIBSQL_AUTH_TOKEN") or None
-    )
+    conn = get_db()
     conn.execute('''CREATE TABLE IF NOT EXISTS cars (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         make TEXT NOT NULL,
@@ -70,10 +73,8 @@ def init_db():
 
 
 def get_db():
-    return create_client_sync(
-        url=os.environ.get("LIBSQL_URL"),
-        auth_token=os.environ.get("LIBSQL_AUTH_TOKEN") or None
-    )
+    url, token = get_db_credentials()
+    return create_client_sync(url=url, auth_token=token)
 
 
 # Initialize database tables on application startup
