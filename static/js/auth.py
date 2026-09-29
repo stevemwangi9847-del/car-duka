@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import sqlite3
+import re
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -9,40 +10,42 @@ DATABASE = 'database.db'
 
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
+    """Open a database connection with safe defaults."""
+    conn = sqlite3.connect(DATABASE, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init_auth_db():
     """Create users table if it doesn't exist and seed a default admin."""
     conn = get_db()
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        full_name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        phone TEXT,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'buyer',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.commit()
-
-    # Seed default admin if none exists
-    existing_admin = c.execute("SELECT * FROM users WHERE role = 'admin'").fetchone()
-    if not existing_admin:
-        c.execute('''INSERT INTO users (full_name, email, phone, password_hash, role)
-                     VALUES (?, ?, ?, ?, ?)''',
-                  ('Car Duka Admin',
-                   'admin@carduka.com',
-                   '0718870024',
-                   generate_password_hash('admin123'),
-                   'admin'))
+    try:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'buyer',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
         conn.commit()
-        print("✅ Default admin created: admin@carduka.com / admin123")
 
-    conn.close()
+        existing_admin = c.execute("SELECT * FROM users WHERE role = 'admin'").fetchone()
+        if not existing_admin:
+            c.execute('''INSERT INTO users (full_name, email, phone, password_hash, role)
+                         VALUES (?, ?, ?, ?, ?)''',
+                      ('Car Duka Admin',
+                       'admin@carduka.com',
+                       '0718870024',
+                       generate_password_hash('admin123'),
+                       'admin'))
+            conn.commit()
+            print("✅ Default admin created: admin@carduka.com / admin123")
+    finally:
+        conn.close()
 
 
 # ---------- Decorators ----------
@@ -76,14 +79,18 @@ def register():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        full_name = request.form['full_name'].strip()
-        email = request.form['email'].strip().lower()
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
         phone = request.form.get('phone', '').strip()
-        password = request.form['password']
-        confirm = request.form['confirm_password']
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
 
         if not full_name or not email or not password:
             flash('Please fill in all required fields.', 'error')
+            return redirect(url_for('auth.register'))
+
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('Please enter a valid email address.', 'error')
             return redirect(url_for('auth.register'))
 
         if password != confirm:
@@ -95,17 +102,18 @@ def register():
             return redirect(url_for('auth.register'))
 
         conn = get_db()
-        existing = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
-        if existing:
-            conn.close()
-            flash('Email already registered. Please log in.', 'error')
-            return redirect(url_for('auth.login'))
+        try:
+            existing = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
+            if existing:
+                flash('Email already registered. Please log in.', 'error')
+                return redirect(url_for('auth.login'))
 
-        conn.execute('''INSERT INTO users (full_name, email, phone, password_hash, role)
-                        VALUES (?, ?, ?, ?, 'buyer')''',
-                     (full_name, email, phone, generate_password_hash(password)))
-        conn.commit()
-        conn.close()
+            conn.execute('''INSERT INTO users (full_name, email, phone, password_hash, role)
+                            VALUES (?, ?, ?, ?, 'buyer')''',
+                         (full_name, email, phone, generate_password_hash(password)))
+            conn.commit()
+        finally:
+            conn.close()
 
         flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('auth.login'))
@@ -119,12 +127,14 @@ def login():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        email = request.form['email'].strip().lower()
-        password = request.form['password']
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
 
         conn = get_db()
-        user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
-        conn.close()
+        try:
+            user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+        finally:
+            conn.close()
 
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
@@ -136,9 +146,9 @@ def login():
             if user['role'] == 'admin':
                 return redirect(next_page or url_for('admin'))
             return redirect(next_page or url_for('index'))
-        else:
-            flash('Invalid email or password.', 'error')
-            return redirect(url_for('auth.login'))
+
+        flash('Invalid email or password.', 'error')
+        return redirect(url_for('auth.login'))
 
     return render_template('login.html')
 
