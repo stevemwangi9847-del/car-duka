@@ -9,18 +9,9 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignat
 # Load .env BEFORE any os.environ calls
 load_dotenv()
 
+from database import get_db
+
 auth_bp = Blueprint('auth', __name__)
-
-
-def get_db():
-    url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL")
-    if not url:
-        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-            url = "file:/tmp/local.db"
-        else:
-            url = "file:local.db"
-    token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
-    return create_client_sync(url=url, auth_token=token)
 
 
 def init_auth_db():

@@ -28,15 +28,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def get_db_credentials():
-    url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL")
-    if not url:
-        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-            url = "file:/tmp/local.db"
-        else:
-            url = "file:local.db"
-    token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
-    return url, token
+from database import get_db
 
 
 def init_db():
@@ -75,11 +67,6 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users (id)
     )''')
     conn.close()
-
-
-def get_db():
-    url, token = get_db_credentials()
-    return create_client_sync(url=url, auth_token=token)
 
 
 _db_initialized = False
