@@ -11,7 +11,7 @@ import re
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'car_duka_secret_key_2024'
+app.secret_key = os.environ.get("SECRET_KEY", "car_duka_secret_key_2024")
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
@@ -74,6 +74,14 @@ def get_db():
         url=os.environ.get("LIBSQL_URL"),
         auth_token=os.environ.get("LIBSQL_AUTH_TOKEN") or None
     )
+
+
+# Initialize database tables on application startup
+try:
+    init_db()
+    init_auth_db()
+except Exception as e:
+    print(f"Database initialization error: {e}")
 
 
 @app.context_processor
@@ -295,6 +303,4 @@ def chat():
 
 
 if __name__ == '__main__':
-    init_db()
-    init_auth_db()   # ← create users table + seed admin
     app.run(debug=True)
