@@ -29,7 +29,12 @@ def allowed_file(filename):
 
 
 def get_db_credentials():
-    url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL") or "file:local.db"
+    url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL")
+    if not url:
+        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            url = "file:/tmp/local.db"
+        else:
+            url = "file:local.db"
     token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
     return url, token
 
@@ -100,9 +105,13 @@ def inject_globals():
 # ---------- Public routes ----------
 @app.route('/')
 def index():
-    conn = get_db()
-    cars = conn.execute('SELECT * FROM cars WHERE status = "available" ORDER BY created_at DESC LIMIT 6').rows
-    conn.close()
+    cars = []
+    try:
+        conn = get_db()
+        cars = conn.execute('SELECT * FROM cars WHERE status = "available" ORDER BY created_at DESC LIMIT 6').rows
+        conn.close()
+    except Exception as e:
+        print(f"Error fetching cars for homepage: {e}")
     return render_template('index.html', cars=cars)
 
 
@@ -138,9 +147,13 @@ def cars():
         query += ' AND year >= ?'; params.append(int(year))
 
     query += ' ORDER BY created_at DESC'
-    conn = get_db()
-    cars = conn.execute(query, params).rows
-    conn.close()
+    cars = []
+    try:
+        conn = get_db()
+        cars = conn.execute(query, params).rows
+        conn.close()
+    except Exception as e:
+        print(f"Error fetching cars: {e}")
     return render_template('cars.html', cars=cars)
 
 
