@@ -74,11 +74,11 @@ def register():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        full_name = request.form['full_name'].strip()
-        email = request.form['email'].strip().lower()
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
         phone = request.form.get('phone', '').strip()
-        password = request.form['password']
-        confirm = request.form['confirm_password']
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
 
         if not full_name or not email or not password:
             flash('Please fill in all required fields.', 'error')
@@ -92,21 +92,48 @@ def register():
             flash('Password must be at least 6 characters.', 'error')
             return redirect(url_for('auth.register'))
 
-        conn = get_db()
-        result = conn.execute('SELECT id FROM users WHERE email = ?', [email])
-        existing = result.rows[0] if result.rows else None
-        if existing:
-            conn.close()
-            flash('Email already registered. Please log in.', 'error')
+        conn = None
+
+        try:
+            # Make sure the users table exists
+            init_auth_db()
+
+            conn = get_db()
+
+            result = conn.execute(
+                'SELECT id FROM users WHERE email = ?',
+                [email]
+            )
+
+            existing = result.rows[0] if result.rows else None
+
+            if existing:
+                flash('Email already registered. Please log in.', 'error')
+                return redirect(url_for('auth.login'))
+
+            password_hash = generate_password_hash(password)
+
+            conn.execute(
+                '''INSERT INTO users
+                   (full_name, email, phone, password_hash, role)
+                   VALUES (?, ?, ?, ?, 'buyer')''',
+                [full_name, email, phone, password_hash]
+            )
+
+            flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('auth.login'))
 
-        conn.execute('''INSERT INTO users (full_name, email, phone, password_hash, role)
-                        VALUES (?, ?, ?, ?, 'buyer')''',
-                     [full_name, email, phone, generate_password_hash(password)])
-        conn.close()
+        except Exception as e:
+            print(f"REGISTRATION ERROR: {e}")
+            flash(
+                'Registration failed because of a database error. Please try again.',
+                'error'
+            )
+            return redirect(url_for('auth.register'))
 
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
+        finally:
+            if conn:
+                conn.close()
 
     return render_template('register.html')
 
