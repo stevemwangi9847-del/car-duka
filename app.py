@@ -82,12 +82,19 @@ def get_db():
     return create_client_sync(url=url, auth_token=token)
 
 
-# Initialize database tables on application startup
-try:
-    init_db()
-    init_auth_db()
-except Exception as e:
-    print(f"Database initialization error: {e}")
+_db_initialized = False
+
+
+@app.before_request
+def ensure_db_initialized():
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            init_db()
+            init_auth_db()
+            _db_initialized = True
+        except Exception as e:
+            print(f"Lazy DB initialization warning: {e}")
 
 
 @app.context_processor

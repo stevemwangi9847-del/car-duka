@@ -129,10 +129,16 @@ def login():
         email = request.form['email'].strip().lower()
         password = request.form['password']
 
-        conn = get_db()
-        result = conn.execute('SELECT * FROM users WHERE email = ?', [email])
-        user = result.rows[0] if result.rows else None
-        conn.close()
+        user = None
+        try:
+            conn = get_db()
+            result = conn.execute('SELECT * FROM users WHERE email = ?', [email])
+            user = result.rows[0] if result.rows else None
+            conn.close()
+        except Exception as e:
+            print(f"Error querying user during login: {e}")
+            flash('Database connection error. Please try again later.', 'error')
+            return render_template('login.html')
 
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
