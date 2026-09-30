@@ -3,7 +3,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import os
 from dotenv import load_dotenv
-from libsql_client import create_client_sync
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature, BadSignature
 
 # Load .env BEFORE any os.environ calls

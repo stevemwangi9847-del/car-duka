@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from libsql_client import create_client_sync
 
 
 class SqliteResultWrapper:
@@ -37,16 +36,23 @@ class SqliteClientWrapper:
 
 def get_db():
     url = os.environ.get("LIBSQL_URL") or os.environ.get("TURSO_DATABASE_URL")
-    token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
 
-    if not url or url.startswith("file:"):
-        if not url:
-            if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-                db_path = "/tmp/local.db"
-            else:
-                db_path = "local.db"
-        else:
-            db_path = url
+    # On Vercel serverless, always use /tmp for writable SQLite storage
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        db_path = "/tmp/local.db"
         return SqliteClientWrapper(db_path)
-    else:
+
+    # Local development: use file path or local.db fallback
+    if not url or url.startswith("file:"):
+        db_path = url if url else "local.db"
+        return SqliteClientWrapper(db_path)
+
+    # Remote Turso/libsql database
+    try:
+        from libsql_client import create_client_sync
+        token = os.environ.get("LIBSQL_AUTH_TOKEN") or os.environ.get("TURSO_AUTH_TOKEN") or None
         return create_client_sync(url=url, auth_token=token)
+    except ImportError:
+        # Fallback to local SQLite if libsql_client not available
+        db_path = "/tmp/local.db"
+        return SqliteClientWrapper(db_path)

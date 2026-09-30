@@ -3,7 +3,6 @@ from werkzeug.utils import secure_filename
 from auth import auth_bp, init_auth_db, login_required, admin_required
 import os
 from dotenv import load_dotenv
-from libsql_client import create_client_sync
 import uuid
 import re
 
